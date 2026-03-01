@@ -1,0 +1,116 @@
+version: '3.9'
+
+services:
+  # PostgreSQL Database - Production
+  postgres:
+    image: postgres:16-alpine
+    container_name: luminallib-postgres-prod
+    restart: always
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_INITDB_ARGS: "-c max_connections=200 -c shared_buffers=256MB -c effective_cache_size=1GB"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./luminallib-backend/init-db.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - luminallib-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Backend API Service - Production
+  backend:
+    build:
+      context: ./luminallib-backend
+      dockerfile: Dockerfile
+      target: production
+    container_name: luminallib-backend-prod
+    restart: always
+    environment:
+      DATABASE_URL: postgresql+psycopg://${DB_USER}:${DB_PASSWORD}@postgres:5432/${DB_NAME}
+      ENVIRONMENT: production
+      DEBUG: False
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS}
+      
+      LLM_PROVIDER: ${LLM_PROVIDER}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      HUGGINGFACE_API_KEY: ${HUGGINGFACE_API_KEY}
+      
+      STORAGE_TYPE: ${STORAGE_TYPE}
+      LOCAL_STORAGE_PATH: ${LOCAL_STORAGE_PATH}
+      
+      SECRET_KEY: ${SECRET_KEY}
+      JWT_ALGORITHM: ${JWT_ALGORITHM}
+      JWT_EXPIRATION_HOURS: ${JWT_EXPIRATION_HOURS}
+    ports:
+      - "${BACKEND_PORT}:8000"
+    volumes:
+      - backend_files:/app/files
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - luminallib-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --workers 4
+
+  # Frontend Service - Production
+  frontend:
+    build:
+      context: ./luminalib-frontend
+      dockerfile: Dockerfile
+      target: production
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+        NODE_ENV: production
+    container_name: luminallib-frontend-prod
+    restart: always
+    environment:
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+      NODE_ENV: production
+    ports:
+      - "${FRONTEND_PORT}:3000"
+    depends_on:
+      - backend
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - luminallib-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  postgres_data:
+    driver: local
+  backend_files:
+    driver: local
+
+networks:
+  luminallib-network:
+    driver: bridge

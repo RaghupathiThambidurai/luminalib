@@ -1,0 +1,115 @@
+version: '3.9'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: luminallib-postgres
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_DB: ${DB_NAME:-luminallib_db}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./luminallib-backend/init-db.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - luminallib-network
+
+  # Backend API Service
+  backend:
+    build:
+      context: ./luminallib-backend
+      dockerfile: Dockerfile
+    container_name: luminallib-backend
+    environment:
+      # Database Configuration
+      DATABASE_URL: postgresql+psycopg://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@postgres:5432/${DB_NAME:-luminallib_db}
+      
+      # Server Configuration
+      ENVIRONMENT: ${ENVIRONMENT:-production}
+      DEBUG: ${DEBUG:-False}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:8000}
+      
+      # LLM Configuration
+      LLM_PROVIDER: ${LLM_PROVIDER:-mock}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      HUGGINGFACE_API_KEY: ${HUGGINGFACE_API_KEY:-}
+      
+      # Storage Configuration
+      STORAGE_TYPE: ${STORAGE_TYPE:-local}
+      LOCAL_STORAGE_PATH: ${LOCAL_STORAGE_PATH:-/app/files}
+      
+      # JWT Configuration
+      SECRET_KEY: ${SECRET_KEY:-your-secret-key-change-in-production}
+      JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
+      JWT_EXPIRATION_HOURS: ${JWT_EXPIRATION_HOURS:-24}
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    volumes:
+      - ./luminallib-backend:/app
+      - backend_files:/app/files
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - luminallib-network
+    command: python3 main.py
+
+  # Frontend Service
+  frontend:
+    build:
+      context: ./luminalib-frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000/api}
+        NODE_ENV: ${NODE_ENV:-production}
+    container_name: luminallib-frontend
+    environment:
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000/api}
+      NODE_ENV: ${NODE_ENV:-production}
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    depends_on:
+      - backend
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - luminallib-network
+
+  # Optional: Adminer for Database Management
+  adminer:
+    image: adminer:latest
+    container_name: luminallib-adminer
+    environment:
+      ADMINER_DEFAULT_SERVER: postgres
+    ports:
+      - "${ADMINER_PORT:-8080}:8080"
+    depends_on:
+      - postgres
+    networks:
+      - luminallib-network
+
+volumes:
+  postgres_data:
+    driver: local
+  backend_files:
+    driver: local
+
+networks:
+  luminallib-network:
+    driver: bridge
