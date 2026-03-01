@@ -1,0 +1,110 @@
+INFO:     Will watch for changes in these directories: ['/Users/nagarajan.k/Documents/FullStack/luminallib-backend']
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [28211] using StatReload
+INFO:     Started server process [28276]
+INFO:     Waiting for application startup.
+2026-02-26 22:28:58,730 - main - INFO - ============================================================
+2026-02-26 22:28:58,731 - main - INFO - 🚀 Starting LuminalLib Backend
+2026-02-26 22:28:58,731 - main - INFO - ============================================================
+2026-02-26 22:28:58,731 - main - INFO - Environment: development
+2026-02-26 22:28:58,731 - main - INFO - Debug: True
+2026-02-26 22:28:58,731 - main - INFO - 🔧 Configuring Dependency Injection Container...
+2026-02-26 22:28:58,731 - main - INFO - 📚 Database: postgresql+psycopg://postgres:postgres@localhost:5...
+2026-02-26 22:28:58,863 - main - INFO - 🧠 LLM Provider: mock
+2026-02-26 22:28:58,863 - app.adapters.llm.llm_factory - INFO - 🔧 Using Mock LLM adapter (development mode)
+2026-02-26 22:28:58,863 - main - INFO - 💾 Storage Type: local
+2026-02-26 22:28:58,863 - app.adapters.file_storage.file_storage_factory - INFO - 🔧 Using Local File Storage adapter
+2026-02-26 22:28:58,863 - app.adapters.file_storage.local_storage - INFO - ✓ Local file storage initialized at files
+2026-02-26 22:28:58,863 - main - INFO - ✅ Dependency Injection Container initialized
+2026-02-26 22:28:58,863 - main - INFO - 📋 Registered dependencies: 7
+2026-02-26 22:28:58,863 - main - INFO - ============================================================
+2026-02-26 22:28:58,864 - main - INFO - ✅ LuminalLib Backend Ready!
+2026-02-26 22:28:58,864 - main - INFO - ============================================================
+INFO:     Application startup complete.
+INFO:     127.0.0.1:51469 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51480 - "GET /api/books/ HTTP/1.1" 500 Internal Server Error
+2026-02-26 22:29:14,001 - app.api.books - INFO - 📚 Creating book: The Great Gatsby by F. Scott Fitzgerald
+2026-02-26 22:29:14,004 - app.api.books - ERROR - ❌ Server error creating book: (psycopg.errors.UndefinedColumn) column "file_url" of relation "books" does not exist
+LINE 1: ...n, description, genre, published_date, cover_url, file_url, ...
+                                                             ^
+[SQL: INSERT INTO books (id, title, author, isbn, description, genre, published_date, cover_url, file_url, file_size, book_metadata, created_at, updated_at) VALUES (%(id)s::VARCHAR, %(title)s::VARCHAR, %(author)s::VARCHAR, %(isbn)s::VARCHAR, %(description)s::VARCHAR, %(genre)s::VARCHAR, %(published_date)s::TIMESTAMP WITHOUT TIME ZONE, %(cover_url)s::VARCHAR, %(file_url)s::VARCHAR, %(file_size)s::INTEGER, %(book_metadata)s::JSON, %(created_at)s::TIMESTAMP WITHOUT TIME ZONE, %(updated_at)s::TIMESTAMP WITHOUT TIME ZONE)]
+[parameters: {'id': '1e99a640-da2f-4c8d-b50e-89ba65da2b5c', 'title': 'The Great Gatsby', 'author': 'F. Scott Fitzgerald', 'isbn': '978-0743273565', 'description': 'A masterpiece of the Jazz Age', 'genre': 'Fiction', 'published_date': None, 'cover_url': None, 'file_url': None, 'file_size': None, 'book_metadata': Json({'summary_task_id': None, 'ingestio ... (73 chars)), 'created_at': datetime.datetime(2026, 2, 26, 16, 59, 14, 2948), 'updated_at': datetime.datetime(2026, 2, 26, 16, 59, 14, 2951)}]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+INFO:     127.0.0.1:51482 - "POST /api/books/ HTTP/1.1" 500 Internal Server Error
+INFO:     127.0.0.1:51519 - "GET /api/books/ HTTP/1.1" 200 OK
+2026-02-26 22:29:39,021 - app.api.books - INFO - 📚 Creating book: The Great Gatsby by F. Scott Fitzgerald
+2026-02-26 22:29:39,029 - app.api.books - INFO - ✅ Book created successfully: a7f0545f-99c1-4a95-a65c-bdd30ed73721
+INFO:     127.0.0.1:51521 - "POST /api/books/ HTTP/1.1" 201 Created
+INFO:     127.0.0.1:51523 - "GET /api/books/a7f0545f-99c1-4a95-a65c-bdd30ed73721 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51525 - "GET /api/books/search/Gatsby?limit=5 HTTP/1.1" 200 OK
+2026-02-26 22:29:39,176 - app.api.books - INFO - 📚 Borrow request: book_id=a7f0545f-99c1-4a95-a65c-bdd30ed73721, days=21
+2026-02-26 22:29:39,177 - app.services.book_service - INFO - 📚 User user_anonymous borrowing book: The Great Gatsby
+2026-02-26 22:29:39,187 - app.api.books - ERROR - ❌ Borrow error: (psycopg.errors.ForeignKeyViolation) insert or update on table "borrow_records" violates foreign key constraint "borrow_records_user_id_fkey"
+DETAIL:  Key (user_id)=(user_anonymous) is not present in table "users".
+[SQL: INSERT INTO borrow_records (id, user_id, book_id, borrowed_at, due_date, returned_at, status) VALUES (%(id)s::VARCHAR, %(user_id)s::VARCHAR, %(book_id)s::VARCHAR, %(borrowed_at)s::TIMESTAMP WITHOUT TIME ZONE, %(due_date)s::TIMESTAMP WITHOUT TIME ZONE, %(returned_at)s::TIMESTAMP WITHOUT TIME ZONE, %(status)s::VARCHAR)]
+[parameters: {'id': 'f7f3cfeb-a749-41af-a314-026d653fc08c', 'user_id': 'user_anonymous', 'book_id': 'a7f0545f-99c1-4a95-a65c-bdd30ed73721', 'borrowed_at': datetime.datetime(2026, 2, 26, 16, 59, 39, 182148), 'due_date': datetime.datetime(2026, 3, 19, 16, 59, 39, 182140), 'returned_at': None, 'status': 'active'}]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+INFO:     127.0.0.1:51527 - "POST /api/books/a7f0545f-99c1-4a95-a65c-bdd30ed73721/borrow?due_date_days=21 HTTP/1.1" 500 Internal Server Error
+2026-02-26 22:29:39,257 - app.api.books - INFO - 📚 Borrow request: book_id=a7f0545f-99c1-4a95-a65c-bdd30ed73721, days=14
+2026-02-26 22:29:39,258 - app.services.book_service - INFO - 📚 User user_anonymous borrowing book: The Great Gatsby
+2026-02-26 22:29:39,260 - app.api.books - ERROR - ❌ Borrow error: (psycopg.errors.ForeignKeyViolation) insert or update on table "borrow_records" violates foreign key constraint "borrow_records_user_id_fkey"
+DETAIL:  Key (user_id)=(user_anonymous) is not present in table "users".
+[SQL: INSERT INTO borrow_records (id, user_id, book_id, borrowed_at, due_date, returned_at, status) VALUES (%(id)s::VARCHAR, %(user_id)s::VARCHAR, %(book_id)s::VARCHAR, %(borrowed_at)s::TIMESTAMP WITHOUT TIME ZONE, %(due_date)s::TIMESTAMP WITHOUT TIME ZONE, %(returned_at)s::TIMESTAMP WITHOUT TIME ZONE, %(status)s::VARCHAR)]
+[parameters: {'id': '832c7bf9-8663-4933-be54-bf1e5242ae52', 'user_id': 'user_anonymous', 'book_id': 'a7f0545f-99c1-4a95-a65c-bdd30ed73721', 'borrowed_at': datetime.datetime(2026, 2, 26, 16, 59, 39, 259668), 'due_date': datetime.datetime(2026, 3, 12, 16, 59, 39, 259662), 'returned_at': None, 'status': 'active'}]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+INFO:     127.0.0.1:51529 - "POST /api/books/a7f0545f-99c1-4a95-a65c-bdd30ed73721/borrow?due_date_days=14 HTTP/1.1" 500 Internal Server Error
+INFO:     127.0.0.1:51531 - "GET /api/books/my-borrows HTTP/1.1" 404 Not Found
+2026-02-26 22:29:39,329 - app.api.books - INFO - 📚 Return request: book_id=a7f0545f-99c1-4a95-a65c-bdd30ed73721
+2026-02-26 22:29:39,332 - app.api.books - WARNING - ⚠️ Borrow record not found: No active borrow record found for user user_anonymous and book The Great Gatsby
+INFO:     127.0.0.1:51533 - "POST /api/books/a7f0545f-99c1-4a95-a65c-bdd30ed73721/return HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:51535 - "GET /api/books/my-borrows?include_returned=true HTTP/1.1" 404 Not Found
+WARNING:  StatReload detected changes in 'app/ports/storage_port.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+2026-02-26 22:31:28,947 - main - INFO - ============================================================
+2026-02-26 22:31:28,947 - main - INFO - 🛑 Shutting down LuminalLib Backend...
+2026-02-26 22:31:28,947 - main - INFO - ============================================================
+INFO:     Application shutdown complete.
+INFO:     Finished server process [28276]
+INFO:     Started server process [30413]
+INFO:     Waiting for application startup.
+2026-02-26 22:31:29,558 - main - INFO - ============================================================
+2026-02-26 22:31:29,558 - main - INFO - 🚀 Starting LuminalLib Backend
+2026-02-26 22:31:29,558 - main - INFO - ============================================================
+2026-02-26 22:31:29,558 - main - INFO - Environment: development
+2026-02-26 22:31:29,559 - main - INFO - Debug: True
+2026-02-26 22:31:29,559 - main - INFO - 🔧 Configuring Dependency Injection Container...
+2026-02-26 22:31:29,559 - main - INFO - 📚 Database: postgresql+psycopg://postgres:postgres@localhost:5...
+2026-02-26 22:31:29,697 - main - INFO - 🧠 LLM Provider: mock
+2026-02-26 22:31:29,697 - app.adapters.llm.llm_factory - INFO - 🔧 Using Mock LLM adapter (development mode)
+2026-02-26 22:31:29,697 - main - INFO - 💾 Storage Type: local
+2026-02-26 22:31:29,697 - app.adapters.file_storage.file_storage_factory - INFO - 🔧 Using Local File Storage adapter
+2026-02-26 22:31:29,697 - app.adapters.file_storage.local_storage - INFO - ✓ Local file storage initialized at files
+2026-02-26 22:31:29,697 - main - INFO - ✅ Dependency Injection Container initialized
+2026-02-26 22:31:29,697 - main - INFO - 📋 Registered dependencies: 7
+2026-02-26 22:31:29,697 - main - INFO - ============================================================
+2026-02-26 22:31:29,697 - main - INFO - ✅ LuminalLib Backend Ready!
+2026-02-26 22:31:29,697 - main - INFO - ============================================================
+INFO:     Application startup complete.
+WARNING:  StatReload detected changes in 'app/api/books.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+2026-02-27 21:15:59,263 - main - INFO - ============================================================
+2026-02-27 21:15:59,265 - main - INFO - 🛑 Shutting down LuminalLib Backend...
+2026-02-27 21:15:59,265 - main - INFO - ============================================================
+INFO:     Application shutdown complete.
+INFO:     Finished server process [30413]
+Fatal Python error: init_sys_streams: can't initialize sys standard streams
+Python runtime state: core initialized
+OSError: [Errno 9] Bad file descriptor
+
+Current thread 0x00000001f003d000 (most recent call first):
+  <no Python frame>
+WARNING:  StatReload detected changes in 'app/api/books.py'. Reloading...
+Fatal Python error: init_sys_streams: can't initialize sys standard streams
+Python runtime state: core initialized
+OSError: [Errno 9] Bad file descriptor
+
+Current thread 0x00000001f003d000 (most recent call first):
+  <no Python frame>
+INFO:     Stopping reloader process [28211]
