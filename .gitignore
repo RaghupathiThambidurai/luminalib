@@ -1,0 +1,4 @@
+luminalib-frontend/node_modules/
+luminalib-frontend/**/node_modules/
+node_modules/
+**/node_modules/
