@@ -7,6 +7,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { borrowService } from "@/api/borrow-service";
 import { reviewService } from "@/api/review-service";
 import type { MyBorrowsResponse, Recommendation } from "@/types";
+import Alert from "@/components/Alert";
+import Header from "@/components/Header";
+import RecommendationCard from "@/components/RecommendationCard";
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -66,27 +69,20 @@ export default function ProfilePage() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      {/* Header */}
-      <header className="bg-white border-b border-slate-200">
-        <div className="max-w-6xl mx-auto px-4 py-6 flex items-center justify-between">
-          <Link href="/books" className="text-blue-600 hover:text-blue-700">
-            ← Back to Books
-          </Link>
+      <Header
+        backLink={{ href: "/books", label: "← Back to Books" }}
+        right={
           <button
             onClick={handleLogout}
             className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700"
           >
             Logout
           </button>
-        </div>
-      </header>
+        }
+      />
 
       <main className="max-w-6xl mx-auto px-4 py-12">
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md mb-6">
-            {error}
-          </div>
-        )}
+        {error && <Alert message={error} type="error" className="mb-6" />}
 
         {/* User Profile Card */}
         <div className="bg-white rounded-lg shadow-md p-8 mb-8">
@@ -183,42 +179,15 @@ export default function ProfilePage() {
               <h2 className="text-2xl font-bold text-slate-900 mb-6">
                 Recommended For You
               </h2>
-
               {recommendations.length > 0 ? (
                 <div className="space-y-4">
                   {recommendations.map((rec) => (
-                    <div
-                      key={rec.book_id}
-                      className="border border-slate-200 rounded-lg p-4"
-                    >
-                      {rec.book && (
-                        <>
-                          <Link
-                            href={`/books/${rec.book.id}`}
-                            className="font-semibold text-blue-600 hover:text-blue-700"
-                          >
-                            {rec.book.title}
-                          </Link>
-                          <p className="text-sm text-slate-600">
-                            by {rec.book.author}
-                          </p>
-                        </>
-                      )}
-                      <p className="text-sm text-slate-600 mt-2">
-                        {rec.reason}
-                      </p>
-                      <div className="mt-2 text-sm">
-                        <span className="inline-block bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                          Match: {(rec.score * 100).toFixed(0)}%
-                        </span>
-                      </div>
-                    </div>
+                    <RecommendationCard key={rec.book_id} rec={rec} />
                   ))}
                 </div>
               ) : (
                 <p className="text-slate-600">
-                  No recommendations yet. Borrow and review books to get personalized
-                  recommendations.
+                  No recommendations yet. Borrow and review books to get personalized recommendations.
                 </p>
               )}
             </div>

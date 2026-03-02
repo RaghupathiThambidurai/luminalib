@@ -6,6 +6,9 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { bookService } from "@/api/book-service";
 import type { Book } from "@/types";
+import Alert from "@/components/Alert";
+import Header from "@/components/Header";
+import BookCard from "@/components/BookCard";
 
 export default function BooksPage() {
   const router = useRouter();
@@ -53,10 +56,9 @@ export default function BooksPage() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      {/* Header */}
-      <header className="bg-white border-b border-slate-200">
-        <div className="max-w-6xl mx-auto px-4 py-6 flex items-center justify-between">
-          <h1 className="text-3xl font-bold text-slate-900">LuminalLib</h1>
+      <Header
+        title="LuminalLib"
+        right={
           <div className="flex items-center gap-4">
             <Link href="/books/upload" className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">
               Upload Book
@@ -66,18 +68,14 @@ export default function BooksPage() {
             </Link>
             <div className="text-sm text-slate-600">{user?.username}</div>
           </div>
-        </div>
-      </header>
+        }
+      />
 
       {/* Main Content */}
       <main className="max-w-6xl mx-auto px-4 py-12">
         <h2 className="text-2xl font-bold text-slate-900 mb-8">Browse Books</h2>
 
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md mb-6">
-            {error}
-          </div>
-        )}
+        {error && <Alert message={error} type="error" className="mb-6" />}
 
         {isLoading ? (
           <div className="text-center text-slate-600">Loading books...</div>
@@ -88,36 +86,7 @@ export default function BooksPage() {
             {/* Books Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
               {books.map((book) => (
-                <Link
-                  key={book.id}
-                  href={`/books/${book.id}`}
-                  className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow overflow-hidden"
-                >
-                  <div className="aspect-square bg-slate-200 flex items-center justify-center">
-                    {book.cover_url ? (
-                      <img
-                        src={book.cover_url}
-                        alt={book.title}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="text-slate-400 text-center">
-                        <div>No Cover</div>
-                      </div>
-                    )}
-                  </div>
-                  <div className="p-4">
-                    <h3 className="font-semibold text-slate-900 line-clamp-2">
-                      {book.title}
-                    </h3>
-                    <p className="text-sm text-slate-600 mb-2">{book.author}</p>
-                    {book.genre && (
-                      <span className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
-                        {book.genre}
-                      </span>
-                    )}
-                  </div>
-                </Link>
+                <BookCard key={book.id} book={book} />
               ))}
             </div>
 
