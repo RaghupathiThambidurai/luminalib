@@ -188,17 +188,18 @@ export interface BorrowResponse {
 export interface MyBorrowsResponse {
   borrowed_books: Array<{
     borrow_id: string;
-    book_id: string;
-    title: string;
-    author: string;
+    book: Book;
     borrowed_at: string;
     due_date: string;
+    returned_at: string | null;
     status: string;
     days_remaining: number;
     is_overdue: boolean;
   }>;
   active_count: number;
   overdue_count: number;
+  total_count?: number;
+  user_id?: string;
 }
 
 // Sentiment Analysis

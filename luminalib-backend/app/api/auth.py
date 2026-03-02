@@ -51,31 +51,43 @@ async def get_current_user(
         HTTPException: 401 if token is invalid or user not found
     """
     # Extract token from HTTPAuthorizationCredentials
-    token = authorization.credentials if hasattr(authorization, 'credentials') else str(authorization)
+    # token = authorization.credentials if hasattr(authorization, 'credentials') else str(authorization)
     
+    # token_data = verify_token(token)
+    
+    # if not token_data:
+    #     raise HTTPException(
+    #         status_code=status.HTTP_401_UNAUTHORIZED,
+    #         detail="Invalid authentication credentials",
+    #         headers={"WWW-Authenticate": "Bearer"},
+    #     )
+    
+    # # For simplicity, we search by username
+    # # In production, store user_id in token for better performance
+    # username = token_data.sub
+    # from datetime import datetime
+    token = authorization.credentials
     token_data = verify_token(token)
-    
+
     if not token_data:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid authentication credentials",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    
-    # For simplicity, we search by username
-    # In production, store user_id in token for better performance
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid authentication credentials")
+
     username = token_data.sub
-    from datetime import datetime
+    user = await storage.get_user_by_username(username)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
+
     
     # Get user from storage (this is a placeholder - actual implementation depends on StoragePort)
     # For now, we return a minimal response
     return UserResponse(
-        id=username,  # Placeholder
-        username=username,
-        email="",  # Placeholder
-        is_active=True,
-        created_at=datetime.utcnow(),  # Use current time
-        updated_at=datetime.utcnow()  # Use current time
+        id=user.id,
+        username=user.username,
+        email=user.email,
+        full_name=getattr(user, "full_name", None),
+        is_active=user.is_active,
+        created_at=user.created_at,
+        updated_at=user.updated_at,
     )
 
 

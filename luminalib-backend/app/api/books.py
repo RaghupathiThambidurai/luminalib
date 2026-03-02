@@ -9,6 +9,8 @@ from app.services.book_service import BookService
 from app.workers.background_tasks import BackgroundWorker
 from app.core.exceptions import NotFoundError, ValidationError
 from app.core.security import HTTPBearer, security
+from app.api.auth import get_current_user
+from app.domain.entities import UserResponse
 
 logger = logging.getLogger(__name__)
 
@@ -166,6 +168,7 @@ async def list_books(
 async def get_my_borrowed_books(
     include_returned: bool = Query(False, description="Include returned books in response"),
     authorization: HTTPBearer = Depends(security),
+    current_user: UserResponse = Depends(get_current_user),
     service: BookService = Depends(get_book_service)
 ):
     """
@@ -185,7 +188,9 @@ async def get_my_borrowed_books(
         
         # Extract user_id from authorization token
         # TODO: Extract from actual JWT token
-        user_id = authorization.credentials if authorization else "user_anonymous"
+        # user_id = authorization.credentials if authorization else "user_anonymous"
+        # current_user: UserResponse = Depends(get_current_user)
+        user_id = current_user.id
         
         borrowed = await service.get_user_borrowed_books(user_id, include_returned)
         active = [b for b in borrowed if b.get("status") == "active"]
@@ -292,6 +297,7 @@ async def borrow_book(
     book_id: str,
     due_date_days: int = Query(14, ge=1, le=60, description="Number of days to borrow (max 60)"),
     authorization: HTTPBearer = Depends(security),
+    current_user: UserResponse = Depends(get_current_user),
     service: BookService = Depends(get_book_service)
 ):
     """
@@ -312,7 +318,9 @@ async def borrow_book(
         
         # Extract user_id from authorization token
         # TODO: Extract from actual JWT token
-        user_id = authorization.credentials if authorization else "user_anonymous"
+        # user_id = authorization.credentials if authorization else "user_anonymous"
+        # current_user: UserResponse = Depends(get_current_user)
+        user_id = current_user.id
         
         borrow_record = await service.borrow_book(book_id, user_id, due_date_days)
         
@@ -340,6 +348,7 @@ async def borrow_book(
 async def return_book(
     book_id: str,
     authorization: HTTPBearer = Depends(security),
+    current_user: UserResponse = Depends(get_current_user),
     service: BookService = Depends(get_book_service)
 ):
     """
@@ -357,7 +366,9 @@ async def return_book(
         
         # Extract user_id from authorization token
         # TODO: Extract from actual JWT token
-        user_id = authorization.credentials if authorization else "user_anonymous"
+        # user_id = authorization.credentials if authorization else "user_anonymous"
+        # current_user: UserResponse = Depends(get_current_user)
+        user_id = current_user.id
         
         borrow_record = await service.return_book(book_id, user_id)
         
@@ -379,45 +390,3 @@ async def return_book(
     except Exception as e:
         logger.error(f"❌ Return error: {e}")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
-
-
-@router.get("/my-borrows", response_model=dict)
-async def get_my_borrowed_books(
-    include_returned: bool = Query(False, description="Include returned books in response"),
-    authorization: HTTPBearer = Depends(security),
-    service: BookService = Depends(get_book_service)
-):
-    """
-    Get list of books currently borrowed by authenticated user.
-    
-    **Fields:**
-    - borrowed_books: Array of books with borrow details
-    - active_count: Number of currently borrowed books
-    - overdue_count: Number of overdue books
-    - total_count: Total number of borrows (including returned)
-    
-    **Optional:**
-    - include_returned: Set to true to include returned books
-    """
-    try:
-        logger.info(f"📚 Getting borrowed books for user")
-        
-        # Extract user_id from authorization token
-        # TODO: Extract from actual JWT token
-        user_id = authorization.credentials if authorization else "user_anonymous"
-        
-        borrowed = await service.get_user_borrowed_books(user_id, include_returned)
-        active = [b for b in borrowed if b.get("status") == "active"]
-        overdue = [b for b in borrowed if b.get("is_overdue")]
-        
-        return {
-            "borrowed_books": borrowed,
-            "active_count": len(active),
-            "overdue_count": len(overdue),
-            "total_count": len(borrowed),
-            "user_id": user_id
-        }
-    except Exception as e:
-        logger.error(f"❌ Error fetching borrowed books: {e}")
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
-
