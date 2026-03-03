@@ -5,6 +5,8 @@ from app.domain.entities import Review, ReviewCreate, ReviewAnalysis
 from app.services.review_service import ReviewService
 from app.core.exceptions import NotFoundError, ValidationError
 from app.core.security import HTTPBearer, security
+from app.api.auth import get_current_user
+from app.domain.entities import UserResponse
 
 router = APIRouter(
     prefix="/books",
@@ -28,6 +30,7 @@ async def get_review_service() -> ReviewService:
 async def submit_review(
     book_id: str,
     review_data: ReviewCreate,
+    current_user: UserResponse = Depends(get_current_user),
     authorization: HTTPBearer = Depends(security),
     service: ReviewService = Depends(get_review_service)
 ):
@@ -64,7 +67,7 @@ async def submit_review(
     try:
         # TODO: Extract user_id from authorization token
         # For development, use the actual test user ID from database
-        user_id = "bebe955e-a9fe-466c-a22e-532149baa2f8"  # testuser
+        user_id = current_user.id   # testuser
         
         # Validate review content
         if not review_data.content or len(review_data.content) < 10:
@@ -334,6 +337,7 @@ async def get_recommendations(
     exclude_borrowed: bool = Query(True, description="Exclude already borrowed books"),
     genre: Optional[str] = Query(None, description="Filter by genre"),
     authorization: HTTPBearer = Depends(security),
+    current_user: UserResponse = Depends(get_current_user),
     service: ReviewService = Depends(get_review_service)
 ):
     """
@@ -388,7 +392,7 @@ async def get_recommendations(
     """
     try:
         # TODO: Extract user_id from authorization token
-        user_id = "user_123"
+        user_id = current_user.id
         
         # Get recommendations (with caching)
         recommendations = await service.get_user_recommendations(
@@ -415,6 +419,7 @@ async def get_recommendations(
 async def get_recommendation_details(
     recommendation_id: str,
     authorization: HTTPBearer = Depends(security),
+    current_user: UserResponse = Depends(get_current_user),
     service: ReviewService = Depends(get_review_service)
 ):
     """
@@ -457,7 +462,7 @@ async def get_recommendation_details(
     """
     try:
         # TODO: Extract user_id from authorization token
-        user_id = "user_123"
+        user_id = current_user.id
         
         # Get recommendation details
         recommendation = await service.get_recommendation_details(recommendation_id, user_id)

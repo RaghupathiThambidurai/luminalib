@@ -16,26 +16,32 @@ class ReviewService:
         self._recommendations_cache: Dict[str, List[Recommendation]] = {}  # TODO: Replace with Redis
     
     async def create_review(self, user_id: str, book_id: str, rating: int, content: Optional[str] = None) -> Review:
-        """Create a new review"""
         if not 1 <= rating <= 5:
             raise ValidationError("Rating must be between 1 and 5")
-        
-        # Validate that book exists
+
         book = await self.storage.get_book(book_id)
         if not book:
             raise NotFoundError(f"Book {book_id} not found")
-        
-        # Validate that user exists
+
         user = await self.storage.get_user(user_id)
         if not user:
             raise NotFoundError(f"User {user_id} not found")
-        
-        review = Review(
-            user_id=user_id,
-            book_id=book_id,
-            rating=rating,
-            content=content
+
+        # ✅ must have borrowed
+        borrow_records = await self.storage.get_user_borrow_records(user_id)
+        has_completed_borrow = any(
+            br.book_id == book_id and br.status == "returned"
+            for br in borrow_records
         )
+
+        if not has_completed_borrow:
+            raise ValidationError(
+            "You must borrow and return this book before submitting a review."
+        )
+        if not any(br.book_id == book_id for br in borrow_records):
+            raise ValidationError("You cannot review a book you haven't borrowed.")
+
+        review = Review(user_id=user_id, book_id=book_id, rating=rating, content=content)
         return await self.storage.create_review(review)
     
     async def analyze_and_update_sentiment(self, review_id: str) -> Optional[Review]:
