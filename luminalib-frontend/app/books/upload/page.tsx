@@ -101,7 +101,7 @@ export default function UploadBookPage() {
                 onChange={(e) =>
                   setFormData({ ...formData, title: e.target.value })
                 }
-                className="w-full px-4 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2 text-black border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="Book title"
               />
             </div>
@@ -117,7 +117,7 @@ export default function UploadBookPage() {
                 onChange={(e) =>
                   setFormData({ ...formData, author: e.target.value })
                 }
-                className="w-full px-4 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2 text-black border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="Author name"
               />
             </div>
@@ -133,7 +133,7 @@ export default function UploadBookPage() {
                 onChange={(e) =>
                   setFormData({ ...formData, isbn: e.target.value })
                 }
-                className="w-full px-4 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2 text-black border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="ISBN (e.g., 978-0743273565)"
               />
             </div>
@@ -149,7 +149,7 @@ export default function UploadBookPage() {
                 onChange={(e) =>
                   setFormData({ ...formData, genre: e.target.value })
                 }
-                className="w-full px-4 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2 text-black border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="e.g., Fiction, Mystery, Science Fiction"
               />
             </div>
@@ -165,7 +165,7 @@ export default function UploadBookPage() {
                 onChange={(e) =>
                   setFormData({ ...formData, published_date: e.target.value })
                 }
-                className="w-full px-4 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2 text-black border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
 
@@ -180,7 +180,7 @@ export default function UploadBookPage() {
                   setFormData({ ...formData, description: e.target.value })
                 }
                 rows={4}
-                className="w-full px-4 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2 text-black border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="Brief description of the book"
               />
             </div>
@@ -199,7 +199,7 @@ export default function UploadBookPage() {
                     file: e.target.files?.[0] || null,
                   })
                 }
-                className="w-full px-4 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2 text-black border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
               {formData.file && (
                 <p className="text-sm text-slate-600 mt-2">

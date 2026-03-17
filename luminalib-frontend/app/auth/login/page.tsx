@@ -59,7 +59,7 @@ export default function LoginPage() {
             id="password"
             label="Password"
             value={formData.password}
-            onChange={e => setFormData({ ...formData, password: e.target.value })}
+            onChange={(e: any) => setFormData({ ...formData, password: e.target.value })}
             placeholder="Enter your password"
             autoComplete="current-password"
           />

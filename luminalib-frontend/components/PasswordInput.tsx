@@ -1,7 +1,11 @@
 import React, { useState } from "react";
-import type { InputProps } from "./Input";
 
-const PasswordInput: React.FC<InputProps> = ({ label = "Password", error, ...props }) => {
+type Props = React.InputHTMLAttributes<HTMLInputElement> & {
+  label?: string;
+  error?: string;
+};
+
+const PasswordInput: React.FC<Props> = ({ label = "Password", error, ...props }) => {
   const [show, setShow] = useState(false);
   return (
     <div className="mb-4">

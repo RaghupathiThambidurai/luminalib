@@ -99,7 +99,7 @@ export default function SignupPage() {
             id="password"
             label="Password * (min 8 characters)"
             value={formData.password}
-            onChange={e => setFormData({ ...formData, password: e.target.value })}
+            onChange={(e: any) => setFormData({ ...formData, password: e.target.value })}
             placeholder="Enter a strong password"
             autoComplete="new-password"
           />
@@ -107,7 +107,7 @@ export default function SignupPage() {
             id="confirmPassword"
             label="Confirm Password *"
             value={formData.confirmPassword}
-            onChange={e => setFormData({ ...formData, confirmPassword: e.target.value })}
+            onChange={(e: any) => setFormData({ ...formData, confirmPassword: e.target.value })}
             placeholder="Confirm your password"
             autoComplete="new-password"
           />

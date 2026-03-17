@@ -183,6 +183,7 @@ export interface BorrowResponse {
   returned_at?: string;
   status: "active" | "returned" | "overdue";
   is_overdue: boolean;
+  message?: string;
 }
 
 export interface MyBorrowsResponse {
@@ -200,6 +201,21 @@ export interface MyBorrowsResponse {
   overdue_count: number;
   total_count?: number;
   user_id?: string;
+}
+
+export interface MyBorrowsBookResponse {
+  books: Array<{
+    id: string;
+    title: string;
+    author: string;
+    borrowed_at: string;
+    due_date: string;
+    status: string;
+    days_remaining: number;
+    is_overdue: boolean;
+  }>;
+  active_count: number;
+  overdue_count: number;
 }
 
 // Sentiment Analysis

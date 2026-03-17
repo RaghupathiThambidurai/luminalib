@@ -8,7 +8,19 @@ import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { authService } from "@/api/auth-service";
 import { apiClient } from "@/lib/api-client";
-import type { UserResponse, TokenResponse, UserCreate, LoginRequest } from "@/types";
+import {
+  setAuthCookies,
+  clearAuthCookies,
+  getCookie,
+  ACCESS_COOKIE,
+  REFRESH_COOKIE,
+} from "@/lib/auth-cookies";
+import type {
+  UserResponse,
+  TokenResponse,
+  UserCreate,
+  LoginRequest,
+} from "@/types";
 
 const TOKEN_KEY = "luminallib_access_token";
 const REFRESH_TOKEN_KEY = "luminallib_refresh_token";
@@ -19,26 +31,46 @@ export function useAuth() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Initialize auth state on mount
-  useEffect(() => {
-    initializeAuth();
+  const clearTokens = useCallback(() => {
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(REFRESH_TOKEN_KEY);
+    clearAuthCookies();
+    apiClient.clearToken();
+  }, []);
+
+  const saveTokens = useCallback(async (tokenResponse: TokenResponse) => {
+    // Keep localStorage for existing client-side code compatibility
+    localStorage.setItem(TOKEN_KEY, tokenResponse.access_token);
+    localStorage.setItem(REFRESH_TOKEN_KEY, tokenResponse.refresh_token);
+
+    // Add cookies so SSR pages can read auth
+    setAuthCookies(tokenResponse.access_token, tokenResponse.refresh_token);
+
+    apiClient.setToken(tokenResponse.access_token);
   }, []);
 
   const initializeAuth = useCallback(async () => {
     try {
-      const token = localStorage.getItem(TOKEN_KEY);
+      // Prefer cookie for SSR-compatible auth model, fallback to localStorage
+      const token =
+        getCookie(ACCESS_COOKIE) || localStorage.getItem(TOKEN_KEY);
+
       if (token) {
         apiClient.setToken(token);
         const currentUser = await authService.getCurrentUser();
         setUser(currentUser);
       }
-    } catch (err) {
-      // Token invalid or expired, clear it
+    } catch {
       clearTokens();
+      setUser(null);
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [clearTokens]);
+
+  useEffect(() => {
+    initializeAuth();
+  }, [initializeAuth]);
 
   const signup = useCallback(
     async (userData: UserCreate) => {
@@ -49,6 +81,7 @@ export function useAuth() {
         const currentUser = await authService.getCurrentUser();
         setUser(currentUser);
         router.push("/");
+        router.refresh();
         return { success: true };
       } catch (err) {
         const message =
@@ -57,7 +90,7 @@ export function useAuth() {
         return { success: false, error: message };
       }
     },
-    [router]
+    [router, saveTokens]
   );
 
   const login = useCallback(
@@ -69,6 +102,7 @@ export function useAuth() {
         const currentUser = await authService.getCurrentUser();
         setUser(currentUser);
         router.push("/");
+        router.refresh();
         return { success: true };
       } catch (err) {
         const message =
@@ -77,7 +111,7 @@ export function useAuth() {
         return { success: false, error: message };
       }
     },
-    [router]
+    [router, saveTokens]
   );
 
   const logout = useCallback(async () => {
@@ -89,38 +123,28 @@ export function useAuth() {
       clearTokens();
       setUser(null);
       router.push("/auth/login");
+      router.refresh();
     }
-  }, [router]);
+  }, [router, clearTokens]);
 
   const refreshToken = useCallback(async () => {
     try {
-      const refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
-      if (!refreshToken) {
+      const refresh =
+        getCookie(REFRESH_COOKIE) || localStorage.getItem(REFRESH_TOKEN_KEY);
+
+      if (!refresh) {
         throw new Error("No refresh token available");
       }
 
-      const response = await authService.refreshToken(refreshToken);
+      const response = await authService.refreshToken(refresh);
       await saveTokens(response);
       return { success: true };
-    } catch (err) {
-      // Refresh failed, clear auth
+    } catch {
       clearTokens();
       setUser(null);
       return { success: false };
     }
-  }, []);
-
-  const saveTokens = async (tokenResponse: TokenResponse) => {
-    localStorage.setItem(TOKEN_KEY, tokenResponse.access_token);
-    localStorage.setItem(REFRESH_TOKEN_KEY, tokenResponse.refresh_token);
-    apiClient.setToken(tokenResponse.access_token);
-  };
-
-  const clearTokens = () => {
-    localStorage.removeItem(TOKEN_KEY);
-    localStorage.removeItem(REFRESH_TOKEN_KEY);
-    apiClient.clearToken();
-  };
+  }, [saveTokens, clearTokens]);
 
   const isAuthenticated = user !== null;
 

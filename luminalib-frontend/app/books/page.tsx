@@ -18,7 +18,7 @@ export default function BooksPage() {
   const [error, setError] = useState<string | null>(null);
   const [skip, setSkip] = useState(0);
   const [total, setTotal] = useState(0);
-  const limit = 10;
+  const limit = 12;
 
   useEffect(() => {
     if (!authLoading && !user) {

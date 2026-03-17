@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { QueryProvider } from "./providers";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -15,7 +14,8 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "LuminalLib - Digital Library",
-  description: "A modern digital library with book management, borrowing, and recommendations",
+  description:
+    "A modern digital library with book management, borrowing, and recommendations",
 };
 
 export default function RootLayout({
@@ -25,12 +25,8 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        <QueryProvider>
-          {children}
-        </QueryProvider>
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+        {children}
       </body>
     </html>
   );
