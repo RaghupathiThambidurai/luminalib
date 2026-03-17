@@ -1,52 +1,82 @@
-version: '3.9'
 
 services:
-  # PostgreSQL Database
   postgres:
     image: postgres:16-alpine
     container_name: luminallib-postgres
     environment:
-      POSTGRES_USER: ${DB_USER:-postgres}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
-      POSTGRES_DB: ${DB_NAME:-luminallib_db}
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: luminallib
     ports:
-      - "${DB_PORT:-5432}:5432"
+      - "5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./luminallib-backend/init-db.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-luminallib_db}"]
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 10
     networks:
       - luminallib-network
 
-  # Backend API Service
+  ollama:
+    image: ollama/ollama:latest
+    container_name: luminallib-ollama
+    ports:
+      - "${OLLAMA_PORT:-11434}:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+    networks:
+      - luminallib-network
+
+  ollama-init:
+    image: ollama/ollama:latest
+    container_name: luminallib-ollama-init
+    depends_on:
+      ollama:
+        condition: service_healthy
+    entrypoint: ["sh", "-lc"]
+    command: >
+      ollama pull ${OLLAMA_MODEL:-llama3} &&
+      echo "Pulled model: ${OLLAMA_MODEL:-llama3}"
+    volumes:
+      - ollama_data:/root/.ollama
+    networks:
+      - luminallib-network
+    restart: "no"
+
   backend:
     build:
       context: ./luminallib-backend
       dockerfile: Dockerfile
     container_name: luminallib-backend
     environment:
-      # Database Configuration
       DATABASE_URL: postgresql+psycopg://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@postgres:5432/${DB_NAME:-luminallib_db}
-      
-      # Server Configuration
+
       ENVIRONMENT: ${ENVIRONMENT:-production}
       DEBUG: ${DEBUG:-False}
-      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:8000}
-      
-      # LLM Configuration
-      LLM_PROVIDER: ${LLM_PROVIDER:-mock}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000}
+
+      # LLM configuration
+      LLM_PROVIDER: ${LLM_PROVIDER:-ollama}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://ollama:11434}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-llama3}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       HUGGINGFACE_API_KEY: ${HUGGINGFACE_API_KEY:-}
-      
-      # Storage Configuration
+      HUGGINGFACE_MODEL: ${HUGGINGFACE_MODEL:-meta-llama/Meta-Llama-3-8B-Instruct}
+      HUGGINGFACE_DEVICE: ${HUGGINGFACE_DEVICE:-cpu}
+      HUGGINGFACE_QUANTIZE: ${HUGGINGFACE_QUANTIZE:-false}
+
       STORAGE_TYPE: ${STORAGE_TYPE:-local}
-      LOCAL_STORAGE_PATH: ${LOCAL_STORAGE_PATH:-/app/files}
-      
-      # JWT Configuration
+      LOCAL_STORAGE_PATH: ${LOCAL_STORAGE_PATH:-/files}
+
       SECRET_KEY: ${SECRET_KEY:-your-secret-key-change-in-production}
       JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
       JWT_EXPIRATION_HOURS: ${JWT_EXPIRATION_HOURS:-24}
@@ -58,40 +88,43 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      ollama:
+        condition: service_healthy
+      ollama-init:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 10
     networks:
       - luminallib-network
     command: python3 main.py
 
-  # Frontend Service
   frontend:
     build:
       context: ./luminalib-frontend
       dockerfile: Dockerfile
       args:
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000/api}
-        NODE_ENV: ${NODE_ENV:-production}
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+        NODE_ENV: production
     container_name: luminallib-frontend
     environment:
-      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000/api}
-      NODE_ENV: ${NODE_ENV:-production}
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+      NODE_ENV: production
     ports:
       - "${FRONTEND_PORT:-3000}:3000"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000"]
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 10
     networks:
       - luminallib-network
 
-  # Optional: Adminer for Database Management
   adminer:
     image: adminer:latest
     container_name: luminallib-adminer
@@ -100,7 +133,8 @@ services:
     ports:
       - "${ADMINER_PORT:-8080}:8080"
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     networks:
       - luminallib-network
 
@@ -108,6 +142,8 @@ volumes:
   postgres_data:
     driver: local
   backend_files:
+    driver: local
+  ollama_data:
     driver: local
 
 networks:

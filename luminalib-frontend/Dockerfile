@@ -21,10 +21,13 @@ COPY --from=dependencies /app/node_modules ./node_modules
 COPY . .
 
 # Build the application
-ARG NEXT_PUBLIC_API_URL=http://localhost:8000/api
+ARG NEXT_PUBLIC_API_URL=http://localhost:8000
 ARG NODE_ENV=production
+ARG INTERNAL_API_URL=http://backend:8000
+
 
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+ENV INTERNAL_API_URL=${INTERNAL_API_URL}
 ENV NODE_ENV=${NODE_ENV}
 
 RUN npm run build
