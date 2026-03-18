@@ -4,10 +4,15 @@ from app.domain.entities import User
 from app.ports.storage_port import StoragePort
 from app.core.exceptions import NotFoundError, ValidationError
 import hashlib
+from passlib.context import CryptContext
+
 
 
 class UserService:
     """Service for user management"""
+
+    pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
     
     def __init__(self, storage: StoragePort):
         self.storage = storage
@@ -67,9 +72,9 @@ class UserService:
     @staticmethod
     def _hash_password(password: str) -> str:
         """Hash password"""
-        return hashlib.sha256(password.encode()).hexdigest()
+        return pwd_context.hash(password)
     
     @staticmethod
     def _verify_password(password: str, password_hash: str) -> bool:
         """Verify password"""
-        return hashlib.sha256(password.encode()).hexdigest() == password_hash
+        return pwd_context.verify(password, password_hash)

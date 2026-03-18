@@ -331,7 +331,7 @@ async def get_review_analysis(
 # RECOMMENDATIONS ENDPOINT
 # ============================================================================
 
-@router.get("/recommendations", response_model=dict, name="get_recommendations")
+@router.get("/users/me/recommendations", response_model=dict, name="get_recommendations")
 async def get_recommendations(
     limit: int = Query(10, ge=1, le=50, description="Number of recommendations"),
     exclude_borrowed: bool = Query(True, description="Exclude already borrowed books"),
@@ -415,7 +415,7 @@ async def get_recommendations(
         )
 
 
-@router.get("/recommendations/{recommendation_id}", response_model=dict)
+@router.get("/users/me/recommendations/{recommendation_id}", response_model=dict)
 async def get_recommendation_details(
     recommendation_id: str,
     authorization: HTTPBearer = Depends(security),

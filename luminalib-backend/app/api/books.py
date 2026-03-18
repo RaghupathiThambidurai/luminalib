@@ -125,6 +125,7 @@ async def create_book(
             logger.info(f"📝 Queuing summary generation for book {book.id}")
             # Add background task that will run after response is sent
             background_tasks.add_task(BackgroundWorker.generate_summary, book.id)
+            # background_tasks.add_task(asyncio.create_task,BackgroundWorker.generate_summary(book.id))
             logger.debug(f"   Summary generation queued (will run in background)")
         
         return book
@@ -346,10 +347,10 @@ async def borrow_book(
 
 @router.post("/{book_id}/return", status_code=200)
 async def return_book(
-    book_id: str,
-    authorization: HTTPBearer = Depends(security),
-    current_user: UserResponse = Depends(get_current_user),
-    service: BookService = Depends(get_book_service)
+book_id: str,
+authorization: HTTPBearer = Depends(security),
+current_user: UserResponse = Depends(get_current_user),
+service: BookService = Depends(get_book_service)
 ):
     """
     Return a borrowed book.

@@ -139,64 +139,97 @@ class ReviewService:
     async def get_review_analysis(self, book_id: str) -> Optional[ReviewAnalysis]:
         """
         Get AI-generated analysis of all reviews for a book.
-        
+
         Caches results for 3 days to avoid repeated LLM calls.
-        Uses GenAI (Claude/GPT-4) via adapter.
+        Uses configured LLM adapter when available.
         """
-        # Check cache first
         if book_id in self._analysis_cache:
             cached = self._analysis_cache[book_id]
             if cached.expires_at > datetime.utcnow():
                 return cached
-        
+
         try:
-            # Get all reviews for the book
             reviews = await self.storage.get_reviews_by_book(book_id, skip=0, limit=1000)
-            
             if not reviews:
                 return None
-            
-            # Calculate statistics
+
             total = len(reviews)
-            avg_rating = sum(r.rating for r in reviews) / total if reviews else 0
-            
-            # Calculate average sentiment (from already-analyzed reviews)
-            sentiment_scores = [r.sentiment_score for r in reviews if r.sentiment_score is not None]
-            avg_sentiment = sum(sentiment_scores) / len(sentiment_scores) if sentiment_scores else 0
-            
-            # Count sentiment distribution
-            positive_count = sum(1 for r in reviews if r.sentiment_score and r.sentiment_score > 0.5)
-            negative_count = sum(1 for r in reviews if r.sentiment_score and r.sentiment_score < -0.5)
+            avg_rating = sum(r.rating for r in reviews) / total if total else 0.0
+
+            sentiment_scores = [
+                r.sentiment_score for r in reviews
+                if r.sentiment_score is not None
+            ]
+            avg_sentiment = (
+                sum(sentiment_scores) / len(sentiment_scores)
+                if sentiment_scores else 0.0
+            )
+
+            positive_count = sum(
+                1 for r in reviews
+                if r.sentiment_score is not None and r.sentiment_score > 0.6
+            )
+            negative_count = sum(
+                1 for r in reviews
+                if r.sentiment_score is not None and r.sentiment_score < 0.4
+            )
             neutral_count = total - positive_count - negative_count
-            
-            # TODO: Call LLM adapter to generate summary
-            # summary = await self._llm_adapter.generate_review_summary(reviews)
-            # key_themes = await self._llm_adapter.extract_themes(reviews)
-            # most_mentioned_words = await self._llm_adapter.extract_keywords(reviews)
-            
-            # For now, use mock implementation
-            summary = f"Analysis of {total} reviews for this book. " \
-                     f"Average rating: {avg_rating:.1f}/5. " \
-                     f"Sentiment is generally positive with an average score of {avg_sentiment:.2f}."
-            
-            key_themes = ["Character development", "Writing style", "Plot", "Emotional impact"]
-            most_mentioned_words = ["great", "love", "excellent", "recommend", "story"]
-            
-            # Create analysis object
+
+            review_texts = [
+                f"Rating: {r.rating}/5. Review: {r.content}"
+                for r in reviews
+                if r.content
+            ]
+            combined_text = "\n".join(review_texts)
+
+            if self.llm_adapter and combined_text.strip():
+                try:
+                    summary = await self.llm_adapter.generate_summary(
+                        combined_text,
+                        max_length=250
+                    )
+                except Exception:
+                    summary = (
+                        f"Based on {total} reviews, this book has an average rating "
+                        f"of {avg_rating:.1f}/5."
+                    )
+                try:
+                    most_mentioned_words = await self.llm_adapter.extract_keywords(
+                        combined_text,
+                        max_keywords=5
+                    )
+                except Exception:
+                    most_mentioned_words = []
+            else:
+                summary = (
+                    f"Based on {total} reviews, this book has an average rating "
+                    f"of {avg_rating:.1f}/5. Average sentiment score is "
+                    f"{avg_sentiment:.2f}."
+                )
+                most_mentioned_words = []
+
+            key_themes = most_mentioned_words[:4] if most_mentioned_words else []
+
             analysis = ReviewAnalysis(
                 book_id=book_id,
                 total_reviews=total,
                 average_rating=avg_rating,
                 average_sentiment=avg_sentiment,
+                sentiment_distribution={
+                    "positive": positive_count,
+                    "neutral": neutral_count,
+                    "negative": negative_count,
+                },
                 summary=summary,
+                key_themes=key_themes,
+                most_mentioned_words=most_mentioned_words,
                 generated_at=datetime.utcnow(),
-                expires_at=datetime.utcnow() + timedelta(days=3)
+                expires_at=datetime.utcnow() + timedelta(days=3),
             )
-            
-            # Cache the analysis
+
             self._analysis_cache[book_id] = analysis
-            
             return analysis
+
         except Exception as e:
             print(f"Error generating review analysis: {e}")
             return None
@@ -212,103 +245,94 @@ class ReviewService:
         exclude_borrowed: bool = True,
         genre: Optional[str] = None
     ) -> List[Dict[str, Any]]:
-        """
-        Get ML-based personalized recommendations for user.
-        
-        Uses hybrid approach:
-        - 40% Content-based (similar to borrowed books)
-        - 35% Collaborative filtering (similar users)
-        - 25% Preference-based (user interests)
-        
-        Results cached for 24 hours.
-        """
-        # Check cache first
+
         cache_key = f"{user_id}:{limit}:{exclude_borrowed}:{genre}"
         if cache_key in self._recommendations_cache:
-            cached_recs = self._recommendations_cache[cache_key]
-            if cached_recs:
-                return cached_recs
-        
+            return self._recommendations_cache[cache_key]
+
         try:
-            # TODO: Get user's borrow history
-            borrowed_books = []  # await self.storage.get_user_borrowed_books(user_id)
-            
-            # TODO: Get user's review history
-            user_reviews = await self.get_reviews_by_user(user_id, skip=0, limit=100)
-            
-            # TODO: Get user preferences
-            user_prefs = {}  # await self.storage.get_user_preferences(user_id)
-            
-            # TODO: Implement ML algorithm
-            # Step 1: Content-based filtering
-            # Step 2: Collaborative filtering
-            # Step 3: Preference-based filtering
-            # Step 4: Combine scores with weights
-            
-            # For now, return mock recommendations
-            recommendations = [
-                {
-                    "id": f"rec_{i}",
-                    "book_id": f"book_{1000 + i}",
-                    "title": f"Recommended Book {i}",
-                    "author": f"Author {i}",
-                    "genre": genre or "Fiction",
-                    "cover_url": f"https://storage.example.com/book_{1000 + i}_cover.jpg",
-                    "score": 0.95 - (i * 0.05),  # Decreasing score
-                    "reason": f"Based on your interest in {genre or 'similar books'}",
+
+            # Get borrow history
+            borrow_records = await self.storage.get_user_borrow_records(user_id)
+            borrowed_ids = [b.book_id for b in borrow_records]
+
+            # Get available books
+            books = await self.storage.list_books(skip=0, limit=200)
+
+            recommendations = []
+
+            for book in books:
+
+                if exclude_borrowed and book.id in borrowed_ids:
+                    continue
+
+                if genre and book.genre != genre:
+                    continue
+
+                recommendations.append({
+                    "id": f"rec_{book.id}",
+                    "book_id": book.id,
+                    "title": book.title,
+                    "author": book.author,
+                    "genre": book.genre,
+                    "cover_url": book.cover_url,
+                    "score": 0.85,
+                    "reason": "Recommended based on available books in library",
                     "reason_details": {
-                        "similar_to_borrowed": borrowed_books[:3],
-                        "matches_preferences": [genre] if genre else ["Fiction"],
-                        "rating_prediction": 4.5 - (i * 0.1)
-                    }
-                }
-                for i in range(min(limit, 10))
-            ]
-            
-            # Cache results for 24 hours
+                    "similar_to_borrowed": borrowed_ids[:3],
+                    "matches_preferences": [book.genre],
+                    "rating_prediction": 4.2
+                 }
+                })
+
+                if len(recommendations) >= limit:
+                    break
+
             self._recommendations_cache[cache_key] = recommendations
-            
             return recommendations
+
         except Exception as e:
             print(f"Error generating recommendations: {e}")
             return []
-    
-    async def get_recommendation_details(self, recommendation_id: str, user_id: str) -> Optional[Dict[str, Any]]:
-        """Get detailed information about a specific recommendation"""
-        try:
-            # TODO: Retrieve from storage
-            # For now, return mock data
-            recommendation = {
-                "id": recommendation_id,
-                "user_id": user_id,
-                "book_id": "book_456",
-                "score": 0.92,
-                "reason": "Based on your love of classic literature",
-                "reason_details": {
-                    "factors": [
-                        {
-                            "factor": "Collaborative Filtering",
-                            "weight": 0.40,
-                            "score": 0.95
-                        },
-                        {
-                            "factor": "Content-Based",
-                            "weight": 0.35,
-                            "score": 0.88
-                        },
-                        {
-                            "factor": "User Preferences",
-                            "weight": 0.25,
-                            "score": 0.85
+
+        async def get_recommendation_details(
+        self,
+        recommendation_id: str,
+        user_id: str
+        ) -> Optional[Dict[str, Any]]:
+            """Get detailed information about a specific recommendation"""
+            try:
+                # First search existing cached recommendations for this user
+                for cache_key, recommendations in self._recommendations_cache.items():
+                    if not cache_key.startswith(f"{user_id}:"):
+                        continue
+
+                    for rec in recommendations:
+                        if rec.get("id") == recommendation_id:
+                            return {
+                                **rec,
+                                "user_id": user_id,
+                                "generated_at": datetime.utcnow().isoformat(),
+                            }
+
+                # If not in cache, regenerate a fresh recommendation list from real books
+                recommendations = await self.get_user_recommendations(
+                    user_id=user_id,
+                    limit=50,
+                    exclude_borrowed=True,
+                    genre=None,
+                )
+
+                for rec in recommendations:
+                    if rec.get("id") == recommendation_id:
+                        return {
+                            **rec,
+                            "user_id": user_id,
+                            "generated_at": datetime.utcnow().isoformat(),
                         }
-                    ],
-                    "similar_to_borrowed": ["The Great Gatsby", "Jane Eyre"],
-                    "matches_genres": ["Fiction", "Classic"],
-                    "predicted_rating": 4.6
-                },
-                "generated_at": datetime.utcnow().isoformat()
-            }
-            return recommendation
-        except Exception as e:
-            print(f"Error getting recommendation details: {e}")
-            return None
+
+                return None
+
+            except Exception as e:
+                print(f"Error getting recommendation details: {e}")
+                return None

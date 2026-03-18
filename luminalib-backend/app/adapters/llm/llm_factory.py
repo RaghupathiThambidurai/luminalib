@@ -5,6 +5,7 @@ from app.ports.llm_port import LLMPort
 from app.adapters.llm.mock_llm import MockLLMAdapter
 from app.adapters.llm.openai_adapter import OpenAIAdapter
 from app.adapters.llm.huggingface_adapter import HuggingFaceAdapter
+from app.adapters.llm.ollama_adapter import OllamaAdapter
 
 logger = logging.getLogger(__name__)
 
@@ -90,6 +91,12 @@ class LLMAdapterFactory:
             except Exception as e:
                 logger.error(f"Failed to initialize HuggingFace adapter: {str(e)}")
                 raise
+        
+        elif provider == "ollama":
+            return OllamaAdapter(
+                    base_url=getattr(settings, "ollama_base_url", "http://ollama:11434"),
+                    model=getattr(settings, "ollama_model", "llama3"),
+            )
         
         else:
             raise ValueError(
